@@ -206,8 +206,13 @@ class Dataset(object):
 
     def _is_datatype_exists(self, data_type: str) -> bool:
         if not self._fs:
-            raise DatasetInitializationError()
-        return self._fs.exists(os.path.join(self._dataset_path, data_type))
+            raise DatasetInitializationError() 
+        if platform.system() == "Windows":
+            data_type_path = f"{self._dataset_path}/{data_type}"
+        else:
+            data_type_path = os.path.join(self._dataset_path, data_type)
+        print(f"data_type_path: {data_type_path}")
+        return self._fs.exists(data_type_path)
 
     @staticmethod
     def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
@@ -234,7 +239,13 @@ class Dataset(object):
         if not self._fs:
             raise DatasetInitializationError()
 
-        read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
+        # read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
+        if platform.system() == "Windows":
+            read_path_str = f"{self._dataset_path}/{data_type}/*.parquet"
+        else:
+            read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
+        print(f"read_path_str: {read_path_str}")
+
         read_path = self._fs.glob(read_path_str)
         if self._is_datatype_exists(data_type):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
@@ -382,7 +393,12 @@ class Dataset(object):
         fs = get_cloud_fs(dataset_path, **kwargs)
 
         # save documents
-        documents_path = os.path.join(dataset_path, "documents")
+        if platform.system() == "Windows":
+            documents_path = f"{dataset_path}/documents"
+            print(f"documents_path: {documents_path}")
+        else:
+            documents_path = os.path.join(dataset_path, "documents")
+
         fs.makedirs(documents_path, exist_ok=True)
 
         documents_metadta_copy = self.documents["metadata"].copy()
@@ -390,8 +406,16 @@ class Dataset(object):
             self.documents["metadata"] = self.documents["metadata"].apply(
                 self._convert_metadata_from_dict_to_json
             )
+
+            if platform.system() == "Windows":
+                parquet_path = f"{documents_path}/part-0.parquet"
+                print(f"parquet_path: {parquet_path}")
+            else:
+                parquet_path = os.path.join(documents_path, "part-0.parquet")       
+
             self.documents.to_parquet(
-                os.path.join(documents_path, "part-0.parquet"),
+                # os.path.join(documents_path, "part-0.parquet"),
+                parquet_path,
                 engine="pyarrow",
                 index=False,
                 filesystem=fs,
