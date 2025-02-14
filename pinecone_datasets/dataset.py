@@ -1,5 +1,7 @@
 import sys
 import os
+import platform
+
 import json
 import time
 import warnings
@@ -86,6 +88,10 @@ class Dataset(object):
             else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
+        if platform.system() == "Windows":
+            dataset_path = f"{catalog_base_path}/{dataset_id}"
+        else:
+            dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         return cls(dataset_path=dataset_path, **kwargs)
 
     @classmethod
